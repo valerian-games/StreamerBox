@@ -1,7 +1,5 @@
 # StreamerBox
 First game of Valerian Games
-# StreamerBox
-First game of Valerian Games
 
 ## Installation
 Clone this repository and open in **Unity**
