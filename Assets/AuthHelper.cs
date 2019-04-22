@@ -4,12 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Firebase : MonoBehaviour {
+public class AuthHelper : MonoBehaviour {
 
     private readonly string baseTokenUrl = "https://us-central1-valerian-games-dev.cloudfunctions.net/tokenUnity?code=";
     private readonly string baseRedirectUrl = "https://us-central1-valerian-games-dev.cloudfunctions.net/oAuthRedirectUnity";
 
     public Text twitchToken;
+
+    Firebase.Auth.FirebaseAuth mAuth = Firebase.Auth.FirebaseAuth.DefaultInstance;
 
     void Start () {
         Application.OpenURL (baseRedirectUrl);
@@ -41,9 +43,38 @@ public class Firebase : MonoBehaviour {
         yield return www;
 
         if (www.error == null) {
-            Debug.Log(www.text);
+            var result = www.text;
+
+            var json = JsonUtility.FromJson<Token>(result);
+
+            Debug.Log(json.authToken);
+
+            mAuth.SignInWithCustomTokenAsync(json.authToken).ContinueWith(task => {
+                if (task.IsCanceled) {
+                    Debug.LogError("SignInWithCustomTokenAsync was canceled.");
+                    return;
+                }
+
+                if (task.IsFaulted) {
+                    Debug.LogError("SignInWithCustomTokenAsync encountered an error: " + task.Exception);
+                    return;
+                }
+
+                Firebase.Auth.FirebaseUser newUser = task.Result;
+
+                Debug.LogFormat (
+                    "User signed in successfully: {0} ({1})",
+                    newUser.DisplayName, 
+                    newUser.UserId
+                );
+            });
+
         } else {
             Debug.Log(www.error);
         }
+    }
+
+    private class Token {
+        public string authToken { get; set; }
     }
 }
