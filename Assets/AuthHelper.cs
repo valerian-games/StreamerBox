@@ -19,21 +19,35 @@ public class AuthHelper : MonoBehaviour {
     
     public void checkSignIn()
     {
-        string authToken = PlayerPrefs.GetString("authToken", "");
+
         MainmenuManager menuMananger = GameObject.Find("Scripts").GetComponent<MainmenuManager>();
-        if (authToken.Equals(""))
-        {
-            Debug.Log("null");
-            menuMananger.setArea(1);
-            Application.OpenURL(baseRedirectUrl);
-        }
-        else
-        {
+
+        //string authToken = PlayerPrefs.GetString("authToken", "");
+        //if (authToken.Equals(""))
+        //{
+        //    Debug.Log("null");
+        //    menuMananger.setArea(1);
+        //    Application.OpenURL(baseRedirectUrl);
+        //}
+        //else
+        //{
+        //    Debug.Log("notnull");
+        //    menuMananger.setArea(2);
+        //    signIn(authToken);
+        //}
+
+        Firebase.Auth.FirebaseUser user = mAuth.CurrentUser;
+
+        if (user != null) {
             Debug.Log("notnull");
             menuMananger.setArea(2);
-            signIn(authToken);
+            return;
         }
-            
+
+        Debug.Log("null");
+        menuMananger.setArea(1);
+        Application.OpenURL(baseRedirectUrl);
+
     }
 
     public void enterTwitchToken() {
