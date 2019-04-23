@@ -11,19 +11,33 @@ public class AuthHelper : MonoBehaviour {
 
     public Text twitchToken;
 
-    Firebase.Auth.FirebaseAuth mAuth = Firebase.Auth.FirebaseAuth.DefaultInstance;
+    Firebase.Auth.FirebaseAuth mAuth;
 
     void Start () {
-        Application.OpenURL (baseRedirectUrl);
+        mAuth = Firebase.Auth.FirebaseAuth.DefaultInstance;
     }
-
-    void Update () {
-
+    
+    public void checkSignIn()
+    {
+        string authToken = PlayerPrefs.GetString("authToken", "");
+        MainmenuManager menuMananger = GameObject.Find("Scripts").GetComponent<MainmenuManager>();
+        if (authToken.Equals(""))
+        {
+            Debug.Log("null");
+            menuMananger.setArea(1);
+            Application.OpenURL(baseRedirectUrl);
+        }
+        else
+        {
+            Debug.Log("notnull");
+            menuMananger.setArea(2);
+            signIn(authToken);
+        }
+            
     }
 
     public void enterTwitchToken() {
         string url = baseTokenUrl + twitchToken.text;
-
         Debug.Log("loading");
 
         getToken(url);
@@ -45,36 +59,49 @@ public class AuthHelper : MonoBehaviour {
         if (www.error == null) {
             var result = www.text;
 
-            var json = JsonUtility.FromJson<Token>(result);
+            Token json = Token.getTokenFromJson(result);
 
-            Debug.Log(json.authToken);
-
-            mAuth.SignInWithCustomTokenAsync(json.authToken).ContinueWith(task => {
-                if (task.IsCanceled) {
-                    Debug.LogError("SignInWithCustomTokenAsync was canceled.");
-                    return;
-                }
-
-                if (task.IsFaulted) {
-                    Debug.LogError("SignInWithCustomTokenAsync encountered an error: " + task.Exception);
-                    return;
-                }
-
-                Firebase.Auth.FirebaseUser newUser = task.Result;
-
-                Debug.LogFormat (
-                    "User signed in successfully: {0} ({1})",
-                    newUser.DisplayName, 
-                    newUser.UserId
-                );
-            });
-
+            signIn(json.authToken);
+            
         } else {
             Debug.Log(www.error);
         }
     }
 
-    private class Token {
-        public string authToken { get; set; }
+    void signIn(string authToken)
+    {
+        mAuth.SignInWithCustomTokenAsync(authToken).ContinueWith(task => {
+            if (task.IsCanceled)
+            {
+                Debug.LogError("SignInWithCustomTokenAsync was canceled.");
+                return;
+            }
+
+            if (task.IsFaulted)
+            {
+                Debug.LogError("SignInWithCustomTokenAsync encountered an error: " + task.Exception);
+                return;
+            }
+
+            Firebase.Auth.FirebaseUser newUser = task.Result;
+
+            Debug.LogFormat(
+                "User signed in successfully: {0} ({1})",
+                newUser.DisplayName,
+                newUser.UserId
+            );
+
+            PlayerPrefs.SetString("authToken", authToken);
+        });
     }
+    
+    private class Token {
+        public string authToken;
+
+        public static Token getTokenFromJson(string jsonStr)
+        {
+            return JsonUtility.FromJson<Token>(jsonStr);
+        }
+    }
+
 }
