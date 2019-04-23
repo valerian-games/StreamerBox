@@ -3,61 +3,88 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class AuthHelper : MonoBehaviour {
 
     private readonly string baseTokenUrl = "https://us-central1-valerian-games-dev.cloudfunctions.net/tokenUnity?code=";
     private readonly string baseRedirectUrl = "https://us-central1-valerian-games-dev.cloudfunctions.net/oAuthRedirectUnity";
 
-    public Text twitchToken;
-
+    // mainmenu variables
+    private string twitchToken;
+    private string email;
+    private string password;
+    private string newPassword;
+    public Text info;
+    MainmenuManager menuMananger;
     Firebase.Auth.FirebaseAuth mAuth;
 
     void Start () {
+        DontDestroyOnLoad(this.gameObject);
         mAuth = Firebase.Auth.FirebaseAuth.DefaultInstance;
+        menuMananger = GameObject.Find("Scripts").GetComponent<MainmenuManager>();
+        checkCredential();
+    }
+
+    void checkCredential()
+    {
+        string email;
+        string password;
+        email = PlayerPrefs.GetString("Email", "");
+        password = PlayerPrefs.GetString("Password", "");
+        if (!(email.Equals("") || password.Equals("")))
+        {
+            trySignIn(email,password);
+            menuMananger.setArea(3);
+        }
     }
     
-    public void checkSignIn()
+    public void signInWithEmail()
     {
-
-        MainmenuManager menuMananger = GameObject.Find("Scripts").GetComponent<MainmenuManager>();
-
-        //string authToken = PlayerPrefs.GetString("authToken", "");
-        //if (authToken.Equals(""))
-        //{
-        //    Debug.Log("null");
-        //    menuMananger.setArea(1);
-        //    Application.OpenURL(baseRedirectUrl);
-        //}
-        //else
-        //{
-        //    Debug.Log("notnull");
-        //    menuMananger.setArea(2);
-        //    signIn(authToken);
-        //}
-
-        Firebase.Auth.FirebaseUser user = mAuth.CurrentUser;
-
-        if (user != null) {
-            Debug.Log("notnull");
-            menuMananger.setArea(2);
+        if (email.Equals("") || password.Equals(""))
+        {
+            info.text = "Email or password empty!";
             return;
         }
 
-        Debug.Log("null");
+        // buraya email kaydetme ekle sonradan
+
+        trySignIn(email, password);
+
+        menuMananger.setArea(3);        
+
+    }
+
+    public void trySignIn(string email,string password)
+    {
+       
+        mAuth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task => {
+            if (task.IsCanceled)
+            {
+                Debug.LogError("SignInWithEmailAndPasswordAsync was canceled.");
+                return;
+            }
+            if (task.IsFaulted)
+            {
+                Debug.LogError("SignInWithEmailAndPasswordAsync encountered an error: " + task.Exception);
+                return;
+            }
+            Firebase.Auth.FirebaseUser newUser = task.Result;
+            Debug.LogFormat("User signed in successfully: {0} ({1})",
+                newUser.DisplayName, newUser.UserId);
+        });
+    }
+
+    
+    public void openTwitchSignIn()
+    {
         menuMananger.setArea(1);
         Application.OpenURL(baseRedirectUrl);
-
     }
-
-    public void enterTwitchToken() {
-        string url = baseTokenUrl + twitchToken.text;
-        Debug.Log("loading");
-
-        getToken(url);
-    }
-
-    void getToken(string URL) {
+    
+    public void enterTwitchToken()
+    {
+        string URL = baseTokenUrl + twitchToken;
         Dictionary<string, string> headers = new Dictionary<string, string>();
         headers.Add("Content-Type", "application/json");
         var packetToSend    = JsonUtility.ToJson(string.Empty);
@@ -108,7 +135,27 @@ public class AuthHelper : MonoBehaviour {
             PlayerPrefs.SetString("authToken", authToken);
         });
     }
+
+    public void openTutorialScene()
+    {
+        SceneManager.LoadScene(1);
+    }
     
+    public void setTwitchToken(string twitchToken)
+    {
+        this.twitchToken = twitchToken;
+    }
+
+    public void setEmail(string email)
+    {
+        this.email = email;
+    }
+
+    public void setPassword(string password)
+    {
+        this.password = password;
+    }
+
     private class Token {
         public string authToken;
 
